@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact ThePulse</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="info-page">
+  <main class="info-card" id="feedback">
+    <a class="info-back" href="../index.html">← Back to ThePulse</a>
+    <p class="info-kicker">CONTACT & FEEDBACK</p>
+    <h1>Send a message</h1>
+    <p class="info-intro">Questions and feedback are saved for the site owner. Do not include passwords or other sensitive information.</p>
+    <form id="contactForm" class="contact-form">
+      <label for="contactName">Your name</label>
+      <input id="contactName" name="name" autocomplete="name" maxlength="100" required />
+      <label for="contactEmail">Email address</label>
+      <input id="contactEmail" name="email" type="email" autocomplete="email" maxlength="254" required />
+      <label for="contactTopic">Subject</label>
+      <select id="contactTopic" name="topic" required>
+        <option value="">Choose a subject</option>
+        <option>General question</option>
+        <option>Feedback</option>
+        <option>Account help</option>
+        <option>Privacy request</option>
+      </select>
+      <label for="contactMessage">Message</label>
+      <textarea id="contactMessage" name="message" rows="6" maxlength="5000" required></textarea>
+      <button class="btn-primary" type="submit">Send message</button>
+      <p class="form-status" aria-live="polite" role="status"></p>
+    </form>
+  </main>
+  <script src="../js/contact.js"></script>
+</body>
+</html>

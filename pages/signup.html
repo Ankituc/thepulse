@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ThePulse — Sign Up</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+
+<div class="auth-page">
+
+  <div class="auth-bg" style="padding-top: 50px;">
+
+    <div class="auth-card">
+
+      <div class="auth-logo">
+        The<span class="pulse">Pulse</span>
+      </div>
+
+      <div class="auth-subtitle">
+        Join thousands of readers getting real-time news updates
+      </div>
+
+      <form id="signupForm">
+
+        <div class="form-group">
+
+          <div class="form-row">
+
+            <div>
+              <label class="form-label">First name</label>
+
+              <div class="input-wrapper no-icon">
+                <input
+                  type="text"
+                  id="firstName"
+                  placeholder="Aman"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="form-label">Last name</label>
+
+              <div class="input-wrapper no-icon">
+                <input
+                  type="text"
+                  id="lastName"
+                  placeholder="Sharma"
+                  required
+                />
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label">
+            Email address
+          </label>
+
+          <div class="input-wrapper">
+
+            <svg width="16" height="16"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="1.8"
+                 class="input-icon">
+
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="M2 7l10 7 10-7"/>
+
+            </svg>
+
+            <input
+              type="email"
+              id="email"
+              placeholder="you@email.com"
+              required
+            />
+
+          </div>
+
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label">
+            Password
+          </label>
+
+          <div class="input-wrapper">
+
+            <svg width="16" height="16"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="1.8"
+                 class="input-icon">
+
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+
+            </svg>
+
+            <input
+              type="password"
+              id="password"
+              placeholder="Create a password"
+              required
+            />
+
+            <button
+              type="button"
+              class="password-toggle"
+              data-toggle-password="password">
+
+              👁
+
+            </button>
+
+          </div>
+
+          <small id="strengthText"></small>
+
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label">
+            Confirm Password
+          </label>
+
+          <div class="input-wrapper">
+
+            <input
+              type="password"
+              id="confirmPassword"
+              placeholder="Confirm your password"
+              required
+            />
+
+          </div>
+
+          <small id="matchText"></small>
+
+        </div>
+
+        <div class="terms-box">
+
+          <label>
+
+            <input
+              type="checkbox"
+              id="terms"
+              required
+            />
+
+            I agree to the
+            <a href="terms.html">Terms of Service</a>
+            and
+            <a href="privacy.html">Privacy Policy</a>
+
+          </label>
+
+        </div>
+
+        <button
+          type="submit"
+          class="btn-primary">
+
+          Create account
+
+        </button>
+
+      </form>
+
+      <div class="auth-switch">
+
+        Already have an account?
+
+        <a href="login.html">
+          Log in
+        </a>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script src="../js/auth.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ThePulse — Login</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+
+<div class="auth-page">
+  <div class="auth-bg">
+
+    <div class="auth-card">
+
+      <div class="auth-logo">
+        The<span class="pulse">Pulse</span>
+      </div>
+
+      <div class="auth-subtitle">
+        Access your personalized news feed
+      </div>
+
+      <form id="loginForm">
+
+        <div class="form-group">
+          <label class="form-label">Email address</label>
+
+          <div class="input-wrapper">
+
+            <svg width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor"
+              stroke-width="1.8"
+              class="input-icon">
+
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="M2 7l10 7 10-7"/>
+
+            </svg>
+
+            <input
+              type="email"
+              id="email"
+              placeholder="you@email.com"
+              required
+            />
+
+          </div>
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label">Password</label>
+
+          <div class="input-wrapper">
+
+            <svg width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor"
+              stroke-width="1.8"
+              class="input-icon">
+
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+
+            </svg>
+
+            <input
+              type="password"
+              id="pwdInput"
+              placeholder="Enter your password"
+              required
+            />
+
+            <button
+              type="button"
+              class="password-toggle"
+              data-toggle-password="pwdInput">
+
+              <svg width="18" height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8">
+
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+
+              </svg>
+
+            </button>
+
+          </div>
+        </div>
+
+        <div class="form-extras">
+
+          <label class="remember-me">
+            <input type="checkbox" id="rememberMe" />
+            Remember me
+          </label>
+
+          <a href="forgot-password.html" class="forgot-link">
+            Forgot password?
+          </a>
+
+        </div>
+
+        <button type="submit" class="btn-primary">
+          Log in
+        </button>
+
+      </form>
+
+      <div class="auth-switch">
+        Don't have an account?
+        <a href="signup.html">
+          Sign up free
+        </a>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script src="../js/auth.js"></script>
+
+</body>
+</html>
