@@ -3,6 +3,7 @@ const searchInput = document.getElementById("search-input");
 const newsFeedback = document.getElementById("news-feedback");
 const searchModeIndicator = document.getElementById("search-mode-indicator");
 let activeRequestId = 0;
+let activeSearchIndicatorId = 0;
 let lastNewsRequest = { type: "category", category: "general" };
 
 function safeArticleUrl(value) {
@@ -45,6 +46,16 @@ const savedStoriesKey = "thepulse.savedStories";
 const bookmarkButton = document.querySelector('[data-article-action="bookmark"]');
 const shareButton = document.querySelector('[data-article-action="share"]');
 const articleActionStatus = document.getElementById("article-action-status");
+let signedInUser = false;
+let accountSavedStories = [];
+
+fetch("/api/auth/me", { credentials: "same-origin" }).then((response) => {
+    signedInUser = response.ok;
+    if (!signedInUser) return;
+    return fetch("/api/saved-stories", { credentials: "same-origin" })
+        .then((response) => response.ok ? response.json() : { stories: [] })
+        .then((data) => { accountSavedStories = data.stories || []; updateBookmarkState(activeHeroArticle); });
+}).catch(() => {});
 
 function readSavedStories() {
     try {
@@ -57,7 +68,9 @@ function readSavedStories() {
 
 function updateBookmarkState(article) {
     if (!bookmarkButton) return;
-    const isSaved = Boolean(article?.url) && readSavedStories().some((story) => story.url === article.url);
+    const isSaved = Boolean(article?.url) && (signedInUser
+        ? accountSavedStories.some((story) => story.url === article.url)
+        : readSavedStories().some((story) => story.url === article.url));
     bookmarkButton.setAttribute("aria-pressed", String(isSaved));
     bookmarkButton.setAttribute("aria-label", isSaved ? "Remove saved story" : "Save this story");
     bookmarkButton.title = isSaved ? "Remove saved story" : "Save this story";
@@ -104,8 +117,32 @@ function retryLastNewsRequest() {
     return fetchNews(lastNewsRequest.category);
 }
 
-bookmarkButton?.addEventListener("click", () => {
+bookmarkButton?.addEventListener("click", async () => {
     if (!activeHeroArticle?.url) return;
+    if (signedInUser) {
+        const wasSaved = accountSavedStories.some((story) => story.url === activeHeroArticle.url);
+        try {
+            const response = await fetch("/api/saved-stories", {
+                method: wasSaved ? "DELETE" : "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                body: JSON.stringify(wasSaved ? { url: activeHeroArticle.url } : {
+                    url: activeHeroArticle.url,
+                    title: activeHeroArticle.title || "Untitled story"
+                })
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || "Could not update saved story.");
+            accountSavedStories = wasSaved
+                ? accountSavedStories.filter((story) => story.url !== activeHeroArticle.url)
+                : [{ url: activeHeroArticle.url, title: activeHeroArticle.title || "Untitled story" }, ...accountSavedStories];
+            updateBookmarkState(activeHeroArticle);
+            if (articleActionStatus) articleActionStatus.textContent = wasSaved ? "Story removed from your account." : "Story saved to your account.";
+        } catch (error) {
+            if (articleActionStatus) articleActionStatus.textContent = error.message;
+        }
+        return;
+    }
     const stories = readSavedStories();
     const existingIndex = stories.findIndex((story) => story.url === activeHeroArticle.url);
     const isSaved = existingIndex === -1;
@@ -389,7 +426,21 @@ async function searchNews(query) {
     setActiveCategory(null);
     showSearchMode(query);
     const params = new URLSearchParams({ q: query });
-    await loadNews(`/api/news/search?${params}`, `Searching for “${query}”…`);
+    const searchForm = document.getElementById("news-search-form");
+    const indicatorId = ++activeSearchIndicatorId;
+    const indicatorStartedAt = Date.now();
+    searchForm?.classList.add("is-searching");
+    searchForm?.querySelector(".search-submit")?.setAttribute("aria-label", `Searching for ${query}`);
+    try {
+        await loadNews(`/api/news/search?${params}`, `Searching for “${query}”…`);
+    } finally {
+        const remainingVisibleTime = Math.max(0, 450 - (Date.now() - indicatorStartedAt));
+        if (remainingVisibleTime) await new Promise((resolve) => window.setTimeout(resolve, remainingVisibleTime));
+        if (indicatorId === activeSearchIndicatorId) {
+            searchForm?.classList.remove("is-searching");
+            searchForm?.querySelector(".search-submit")?.setAttribute("aria-label", "Search headlines");
+        }
+    }
 }
 
 searchModeIndicator?.addEventListener("click", () => {

@@ -5,9 +5,27 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ThePulse — Independent Journalism</title>
-  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/style.css?v=20261124-1"/>
 </head>
-<body>
+<body class="home-page">
+<div class="paper-float-layer" aria-hidden="true">
+  <div class="floating-paper paper-one">
+    <span class="paper-kicker">THE DAILY EDITION</span>
+    <span class="paper-rule"></span>
+    <span class="paper-headline">A closer look at today</span>
+    <span class="paper-lines"></span>
+    <span class="paper-lines short"></span>
+    <span class="paper-stamp">NEWS · CULTURE · IDEAS</span>
+  </div>
+  <div class="floating-paper paper-two">
+    <span class="paper-kicker">THE PULSE · WEEKLY</span>
+    <span class="paper-rule"></span>
+    <span class="paper-headline">Stories worth your time</span>
+    <span class="paper-lines"></span>
+    <span class="paper-lines short"></span>
+    <span class="paper-stamp">INDEPENDENT VIEW</span>
+  </div>
+</div>
 <!-- HEADER -->
 <header class="site-header">
 
@@ -23,6 +41,8 @@
   <!-- NAVBAR -->
 <!-- NAVBAR -->
 <nav class="navbar">
+
+    <a class="nav-brand" href="/" aria-label="ThePulse home">ThePulse</a>
 
     <div class="nav-right">
 
@@ -42,7 +62,11 @@
                 autocomplete="off"
             />
             <button type="submit" class="search-submit" aria-label="Search headlines" title="Search headlines">
-                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                <i class="fa-solid fa-arrow-right search-arrow" aria-hidden="true"></i>
+                <svg class="search-loading-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path class="paper-sheet" d="M6 3.75h8l4 4v12.5H6z" />
+                  <path class="paper-fold" d="M14 3.75v4h4M9 12h6M9 15h5" />
+                </svg>
             </button>
         </form>
 
@@ -226,6 +250,33 @@
 </div>
 </div>
 
+<section class="creator-feature" aria-labelledby="creator-heading">
+    <div class="creator-paper">
+        <div class="creator-paper-topline">
+            <span>FROM THE CREATOR’S DESK</span>
+            <span>THE PULSE · PEOPLE</span>
+        </div>
+        <div class="creator-paper-content">
+            <div class="creator-intro">
+                <p class="creator-kicker">A NOTE ABOUT THE PERSON BEHIND THE PROJECT</p>
+                <h2 id="creator-heading">A student, a developer, and a daily reader.</h2>
+                <p class="creator-byline">By Ankit Kumar <span>·</span> Creator of ThePulse</p>
+            </div>
+            <div class="creator-story">
+                <p>I’m Ankit Kumar, a developer studying B.Tech Computer Science and Engineering at Lovely Professional University. ThePulse is an independent project I built as part of my journey in learning and creating for the web.</p>
+                <p>Working on it has let me bring together thoughtful design, news, and practical web development—from the reading experience to the systems behind it. I’m continuing to learn, refine the project, and build useful things along the way.</p>
+                <a class="creator-email" href="mailto:ankiiiiitx@gmail.com">
+                    <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+                    <span>Get in touch</span>
+                    <span class="creator-email-address">ankiiiiitx@gmail.com</span>
+                    <span aria-hidden="true">↗</span>
+                </a>
+            </div>
+        </div>
+        <div class="creator-paper-bottom"><span>INDEPENDENT STUDENT PROJECT</span><span>THANKS FOR READING</span></div>
+    </div>
+</section>
+
 <!-- FOOTER -->
 <footer>
 <!-- Newsletter -->
@@ -261,7 +312,7 @@
         <small class="newsletter-status" aria-live="polite" role="status"></small>
 
         <small>
-            Email delivery is not configured yet; your address is only saved to the local subscriber list.
+            We’ll send a welcome note when email delivery is configured.
         </small>
 
     </div>
@@ -279,12 +330,19 @@
         </div>
 
         <p>
-            Independent journalism covering breaking news,
-            technology, business, sports and global stories.
+            An independent project by Ankit Kumar, a B.Tech Computer Science and Engineering student at Lovely Professional University.
         </p>
 
         <div class="social-links">
-            <a href="pages/contact.html" aria-label="Contact ThePulse"><i class="fas fa-envelope" aria-hidden="true"></i><span>Contact</span></a>
+            <a href="https://www.linkedin.com/in/ankituc/" target="_blank" rel="noopener noreferrer" aria-label="Ankit on LinkedIn">
+                <i class="fa-brands fa-linkedin-in" aria-hidden="true"></i><span>LinkedIn</span>
+            </a>
+            <a href="https://github.com/Ankituc" target="_blank" rel="noopener noreferrer" aria-label="Ankit on GitHub">
+                <i class="fa-brands fa-github" aria-hidden="true"></i><span>GitHub</span>
+            </a>
+            <a href="mailto:ankiiiiitx@gmail.com" aria-label="Email Ankit at ankiiiiitx@gmail.com">
+                <i class="fa-solid fa-envelope" aria-hidden="true"></i><span>ankiiiiitx@gmail.com</span>
+            </a>
         </div>
 
     </div>
@@ -356,7 +414,7 @@
 <div id="loader-overlay">
     <div class="loader-spinner"></div>
 </div>
-<script src="js/news.js?v=20261029-5"></script>
+<script src="js/news.js?v=20261124-1"></script>
 <script src="js/newsletter.js"></script>
 <script src="js/session.js"></script>
 

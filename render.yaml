@@ -13,3 +13,5 @@ services:
         generateValue: true
       - key: GNEWS_API_KEY
         sync: false
+      - key: DATABASE_PATH
+        value: /tmp/thepulse.sqlite

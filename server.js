@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const path = require("node:path");
 const fs = require("node:fs");
+const crypto = require("node:crypto");
 const express = require("express");
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
@@ -64,7 +65,8 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS newsletter_subscribers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    welcome_email_sent INTEGER NOT NULL DEFAULT 0
   );
   CREATE TABLE IF NOT EXISTS contact_messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -74,6 +76,22 @@ db.exec(`
     message TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
+  CREATE TABLE IF NOT EXISTS saved_stories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    url TEXT NOT NULL,
+    title TEXT NOT NULL,
+    saved_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, url)
+  );
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS saved_stories_user_idx ON saved_stories (user_id, saved_at DESC);
   CREATE TABLE IF NOT EXISTS sessions (
     sid TEXT PRIMARY KEY,
     sess TEXT NOT NULL,
@@ -81,6 +99,11 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions (expires_at);
 `);
+
+const newsletterColumns = db.pragma("table_info(newsletter_subscribers)");
+if (!newsletterColumns.some((column) => column.name === "welcome_email_sent")) {
+  db.exec("ALTER TABLE newsletter_subscribers ADD COLUMN welcome_email_sent INTEGER NOT NULL DEFAULT 0");
+}
 
 class SQLiteSessionStore extends session.Store {
   constructor(database) {
@@ -233,6 +256,47 @@ async function sendWelcomeEmail(firstName, email) {
   }
 }
 
+async function sendNewsletterWelcomeEmail(email, subscriberId) {
+  const subject = "Thanks for joining ThePulse";
+  const text = "Thanks for joining ThePulse Daily Dispatch. You’re on the list for updates from ThePulse.\n\nBest regards,\nThePulse team";
+  const html = `<!doctype html><html><body style="margin:0;background:#f5f5f3;font-family:Arial,Helvetica,sans-serif;color:#202124"><div style="max-width:560px;margin:32px auto;padding:32px;background:#fff;border:1px solid #e6e8ec;border-radius:16px"><p style="margin:0 0 20px;color:#c62828;font-size:22px;font-weight:700">ThePulse</p><h1 style="margin:0 0 16px;font-size:24px">Thanks for joining us.</h1><p style="margin:0 0 12px;line-height:1.6">You’re now on the list for ThePulse Daily Dispatch. We’re glad to have you with us.</p><p style="margin:24px 0 0;line-height:1.6">Best regards,<br><strong>ThePulse team</strong></p></div></body></html>`;
+
+  try {
+    if (process.env.RESEND_API_KEY) {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": `newsletter-welcome-${subscriberId}`
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM || "ThePulse <onboarding@resend.dev>",
+          to: [email], subject, text, html
+        }),
+        signal: AbortSignal.timeout(10000)
+      });
+      if (!response.ok) {
+        throw new Error(`Resend returned status ${response.status}.`);
+      }
+      return true;
+    }
+
+    if (!mailTransport) return null;
+    await mailTransport.sendMail({
+      from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+      to: email,
+      subject,
+      text,
+      html
+    });
+    return true;
+  } catch (error) {
+    console.error("Newsletter welcome email could not be delivered:", error.message);
+    return false;
+  }
+}
+
 function requireSameOriginJson(req, res, next) {
   if (!req.is("application/json")) {
     return res.status(415).json({ error: "This endpoint accepts JSON requests only." });
@@ -262,17 +326,26 @@ app.use("/api/auth", (req, res, next) => {
   return next();
 });
 
-app.post("/api/newsletter/subscribe", requireSameOriginJson, formLimiter, (req, res) => {
+app.post("/api/newsletter/subscribe", requireSameOriginJson, formLimiter, async (req, res) => {
   const email = String(req.body.email || "").trim().toLowerCase();
   if (!validEmail(email)) {
     return res.status(400).json({ error: "Enter a valid email address." });
   }
   const result = db.prepare("INSERT OR IGNORE INTO newsletter_subscribers (email) VALUES (?)").run(email);
-  return res.status(result.changes ? 201 : 200).json({
-    message: result.changes
-      ? "Thanks. Your email is saved for ThePulse Daily Dispatch; email delivery is not configured yet."
-      : "This email is already on the list. Email delivery is not configured yet."
-  });
+  const subscriber = db.prepare("SELECT id, welcome_email_sent FROM newsletter_subscribers WHERE email = ? COLLATE NOCASE").get(email);
+  if (subscriber.welcome_email_sent) {
+    return res.status(200).json({ message: "This email is already on ThePulse Daily Dispatch list.", welcomeEmailSent: true });
+  }
+  const welcomeEmailSent = await sendNewsletterWelcomeEmail(email, subscriber.id);
+  if (welcomeEmailSent === true) {
+    db.prepare("UPDATE newsletter_subscribers SET welcome_email_sent = 1 WHERE id = ?").run(subscriber.id);
+  }
+  const message = welcomeEmailSent === true
+    ? "Thanks for joining ThePulse! Check your inbox for a welcome email."
+    : welcomeEmailSent === false
+      ? "Thanks for joining ThePulse! Your email was saved, but we could not send the welcome email right now."
+      : "Thanks for joining ThePulse! Your email was saved. Email delivery is not configured yet.";
+  return res.status(result.changes ? 201 : 200).json({ message, welcomeEmailSent: welcomeEmailSent === true });
 });
 
 app.post("/api/contact", requireSameOriginJson, formLimiter, (req, res) => {
@@ -385,6 +458,36 @@ const publicUser = (user) => ({
   firstName: user.first_name
 });
 
+function requireUser(req, res, next) {
+  if (!req.session.user) return res.status(401).json({ error: "Log in to sync saved stories." });
+  return next();
+}
+
+app.get("/api/saved-stories", requireUser, (req, res) => {
+  const stories = db.prepare("SELECT url, title, saved_at AS savedAt FROM saved_stories WHERE user_id = ? ORDER BY saved_at DESC")
+    .all(req.session.user.id);
+  return res.json({ stories });
+});
+
+app.post("/api/saved-stories", requireSameOriginJson, requireUser, (req, res) => {
+  const url = String(req.body.url || "").trim();
+  const title = String(req.body.title || "").trim();
+  let parsedUrl;
+  try { parsedUrl = new URL(url); } catch { return res.status(400).json({ error: "Enter a valid story URL." }); }
+  if (!["http:", "https:"].includes(parsedUrl.protocol) || !title || title.length > 500) {
+    return res.status(400).json({ error: "A valid story URL and title are required." });
+  }
+  db.prepare("INSERT OR IGNORE INTO saved_stories (user_id, url, title) VALUES (?, ?, ?)")
+    .run(req.session.user.id, parsedUrl.href, title);
+  return res.status(201).json({ message: "Story saved to your account." });
+});
+
+app.delete("/api/saved-stories", requireSameOriginJson, requireUser, (req, res) => {
+  const url = String(req.body.url || "").trim();
+  db.prepare("DELETE FROM saved_stories WHERE user_id = ? AND url = ?").run(req.session.user.id, url);
+  return res.json({ message: "Story removed from your saved stories." });
+});
+
 app.post("/api/auth/signup", requireSameOriginJson, authLimiter, async (req, res, next) => {
   try {
     const firstName = String(req.body.firstName || "").trim();
@@ -432,6 +535,55 @@ app.post("/api/auth/signup", requireSameOriginJson, authLimiter, async (req, res
     }
     return next(error);
   }
+});
+
+app.post("/api/auth/password-reset/request", requireSameOriginJson, authLimiter, async (req, res, next) => {
+  const email = String(req.body.email || "").trim().toLowerCase();
+  if (!validEmail(email)) return res.status(400).json({ error: "Enter a valid email address." });
+  const user = db.prepare("SELECT id, first_name FROM users WHERE email = ? COLLATE NOCASE").get(email);
+  if (user && mailTransport) {
+    try {
+      const token = crypto.randomBytes(32).toString("hex");
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+      const now = Date.now();
+      db.prepare("DELETE FROM password_reset_tokens WHERE user_id = ? OR expires_at <= ?").run(user.id, now);
+      db.prepare("INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?)")
+        .run(user.id, tokenHash, now + 30 * 60 * 1000, now);
+      const resetUrl = new URL(`/pages/forgot-password.html?token=${token}`, `${req.protocol}://${req.get("host")}`).href;
+      await mailTransport.sendMail({
+        from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+        to: email,
+        subject: "Reset your ThePulse password",
+        text: `Hi ${user.first_name},\n\nUse this link within 30 minutes to reset your password: ${resetUrl}\n\nIf you did not request this, ignore this email.`,
+        html: `<p>Hi ${escapeHtml(user.first_name)},</p><p><a href="${escapeHtml(resetUrl)}">Reset your ThePulse password</a> within 30 minutes.</p><p>If you did not request this, ignore this email.</p>`
+      });
+    } catch (error) {
+      console.error("Password reset email could not be delivered:", error.message);
+    }
+  }
+  return res.json({ message: "If an account exists for that email and email delivery is configured, a reset link will arrive shortly." });
+});
+
+app.post("/api/auth/password-reset/complete", requireSameOriginJson, authLimiter, async (req, res, next) => {
+  try {
+    const token = String(req.body.token || "");
+    const password = String(req.body.password || "");
+    if (!/^[a-f0-9]{64}$/i.test(token)) return res.status(400).json({ error: "This reset link is invalid or expired." });
+    if (password.length < 8 || Buffer.byteLength(password, "utf8") > 72) {
+      return res.status(400).json({ error: "Password must be at least 8 characters and no more than 72 bytes." });
+    }
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const reset = db.prepare("SELECT user_id FROM password_reset_tokens WHERE token_hash = ? AND expires_at > ?").get(tokenHash, Date.now());
+    if (!reset) return res.status(400).json({ error: "This reset link is invalid or expired." });
+    const passwordHash = await bcrypt.hash(password, 12);
+    const update = db.transaction(() => {
+      db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(passwordHash, reset.user_id);
+      db.prepare("DELETE FROM password_reset_tokens WHERE user_id = ?").run(reset.user_id);
+      db.prepare("DELETE FROM sessions WHERE json_extract(sess, '$.user.id') = ?").run(reset.user_id);
+    });
+    update();
+    return res.json({ message: "Password updated. You can now log in." });
+  } catch (error) { return next(error); }
 });
 
 app.post("/api/auth/login", requireSameOriginJson, authLimiter, async (req, res, next) => {

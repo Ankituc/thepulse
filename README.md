@@ -1,6 +1,6 @@
 # ThePulse
 
-ThePulse is a static news frontend served by a small Express backend. Signup and login use a local SQLite database; passwords are stored as bcrypt hashes.
+ThePulse is a static news frontend served by an Express backend. Accounts, login sessions, saved stories, newsletter subscribers, and contact messages use SQLite; passwords are stored as bcrypt hashes. Signed-in saved stories sync to the account, while signed-out bookmarks remain in the current browser and are imported after login.
 
 ## Run locally
 
@@ -24,10 +24,12 @@ When SMTP is configured, successful signup sends a welcome email from ThePulse. 
 
 ## Newsletter and contact forms
 
-- `POST /api/newsletter/subscribe` — validates an email and stores it once in the `newsletter_subscribers` SQLite table.
+- `POST /api/newsletter/subscribe` — validates an email, stores it once in the `newsletter_subscribers` SQLite table, and sends a welcome email when delivery is configured.
 - `POST /api/contact` — validates and stores messages in `contact_messages`; submissions are rate limited.
+- `GET /api/saved-stories` — lists the signed-in user's saved stories.
+- `POST /api/saved-stories` and `DELETE /api/saved-stories` — add/remove a story for the signed-in user.
 
-The current project does not send newsletter emails, password reset emails, or contact notifications. The newsletter form says that addresses are only stored, and the contact form confirms that a message was saved for the site owner. The site owner must access the SQLite database to read contact messages. Add unsubscribe and password-reset flows before promising those features or account recovery.
+Password reset links are sent through the configured SMTP transport and expire after 30 minutes. Newsletter welcome messages use Resend's HTTPS API when `RESEND_API_KEY` is configured, or the configured SMTP transport otherwise. Set `RESEND_FROM` to a sender address on a domain verified with Resend. On Render's free web plan, use Resend's HTTPS API because outbound SMTP ports are blocked. If no mail provider is configured, the subscription is still saved and the form says that the welcome email could not be sent. Newsletter campaign delivery and unsubscribe are not implemented. Contact messages are stored without notifications; the site owner must access SQLite to read them.
 
 The Terms of Service and Privacy Policy pages are project drafts describing current behavior. Review them for your jurisdiction and hosting setup before public launch.
 
@@ -39,12 +41,13 @@ The default session secret is for local development only. Set `SESSION_SECRET` a
 - Set `NODE_ENV=production`, `SESSION_SECRET`, and a valid `GNEWS_API_KEY` in the hosting provider's secret/environment settings. The app's production startup check intentionally refuses placeholder session and news keys. Do not commit `.env`.
 - The GNews key and session secret were previously visible in screenshots/source during development. Revoke the exposed GNews key and generate a new session secret before deployment.
 - Generate the session secret with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`; do not use the example value.
-- Set `DATABASE_PATH` to a persistent writable disk path provided by the host. Without persistent storage, user accounts, contact messages, newsletter addresses, and sessions may be lost when the service restarts or redeploys. This SQLite setup supports one server instance; it is not suitable for horizontally scaled instances or hosts with ephemeral storage.
+- The included `render.yaml` targets Render's free web plan and stores SQLite at `/tmp/thepulse.sqlite`. This is suitable for a portfolio demo, but user accounts, saved stories, contact messages, newsletter addresses, and sessions can be lost when the service restarts or redeploys. For persistent production data, use a paid host disk or migrate to a managed database. This SQLite setup supports one server instance; it is not suitable for horizontally scaled instances.
 - Deploy behind HTTPS. The server sets secure session cookies in production and checks `/api/health` for a simple health check.
 - Login, signup, newsletter, and contact requests are IP rate limited in the running server process. For a multi-instance deployment, use a shared rate-limit store and a shared database.
 - Review GNews plan limits and hosting-provider storage/backup behavior before opening the site to users.
 - Add `SMTP_HOST`, `SMTP_USER`, and `SMTP_PASS` to the host settings together to enable welcome emails; `SMTP_PORT`, `SMTP_SECURE`, and `EMAIL_FROM` are also configurable. Verify the sender address with the provider. Without SMTP settings, accounts still work but signup emails are not sent.
-- Password reset, newsletter email delivery/unsubscribe, and contact notifications are not implemented. Keep those limitations clear to users until those flows are added.
+- Newsletter campaign delivery/unsubscribe and contact notifications are not implemented. Keep those limitations clear to users until those flows are added.
+- For newsletter welcome emails on Render Free, add `RESEND_API_KEY` and `RESEND_FROM` in the Render service's environment settings. Keep the API key private and use a sender address from a verified domain.
 - Set a retention and deletion process for newsletter addresses and contact messages; there is no self-service deletion or admin dashboard in this project.
 - Review the draft Terms of Service and Privacy Policy for your jurisdiction, actual hosting provider, contact details, and retention practices before launch.
 
